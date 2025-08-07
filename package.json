@@ -1,0 +1,30 @@
+{
+  "name": "modern-bank-ai-app",
+  "version": "1.0.0",
+  "description": "modern-ai-module using langraph and aws Bedrock",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "keywords": [
+    "AI",
+    "Module",
+    "Bedrock",
+    "AWS"
+  ],
+  "author": "Jeonghun Sim",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.775.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.726.1",
+    "@aws-sdk/client-dynamodb": "^3.726.1",
+    "@aws-sdk/lib-dynamodb": "^3.726.1",
+    "@langchain/community": "^0.3.24",
+    "@langchain/core": "^0.3.30",
+    "aws-sdk": "^2.1692.0",
+    "express": "^4.21.2",
+    "langchain": "^0.3.11",
+    "reconnecting-websocket": "^4.4.0",
+    "ws": "^8.18.0"
+  }
+}
