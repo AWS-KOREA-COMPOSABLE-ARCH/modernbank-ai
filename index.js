@@ -11,10 +11,10 @@ const {
   RetrieveCommand,
 } = require("@aws-sdk/client-bedrock-agent-runtime");
 
-const AWS_REGION = process.env.AWS_REGION; // AWS 리전
+const AWS_REGION = process.env.AWS_REGION; // AWS Region
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID; // AWS Access Key
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY; // AWS Secret Key
-const BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"; // 사용할 Bedrock Claude 모델 ID
+const BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"; // Bedrock Claude Model ID to use
 const MAX_TOKENS = 2048;
 const TEMPERATURE = 0.7;
 const TOP_P = 0.9;
@@ -47,11 +47,11 @@ const agentClient = new BedrockAgentRuntimeClient({
 
 // async function streamConverseClaudeLangchain(ws, message) {
 //   if (ws.readyState !== WebSocket.OPEN) {
-//     console.error("WebSocket 연결이 끊어졌습니다. 요청을 중단합니다.");
+//     console.error("WebSocket connection is closed. Aborting request.");
 //     return;
 //   }
 
-//   // Bedrock 모델 초기화
+//   // Initialize Bedrock model
 //   const model = new Bedrock({
 //     modelId: BEDROCK_MODEL_ID,
 //     client: LangChainbedrockClient,
@@ -65,19 +65,19 @@ const agentClient = new BedrockAgentRuntimeClient({
 //   });
 
 //   try {
-//     console.log("Bedrock 요청 생성 중...");
+//     console.log("Creating Bedrock request...");
 
-//     // 프롬프트 설정
+//     // Set up prompt
 //     const prompt = `Human: ${message}\n\nAssistant:`;
 
-//     // 스트리밍 응답 처리
+//     // Handle streaming response
 //     const response = await model.call(prompt, {
 //       onToken: (token) => {
 //         if (ws.readyState !== WebSocket.OPEN) {
-//           console.error("WebSocket 연결이 끊어졌습니다. 스트리밍을 중단합니다.");
+//           console.error("WebSocket connection is closed. Stopping streaming.");
 //           return;
 //         }
-//         ws.send(token); // WebSocket으로 각 토큰 전송
+//         ws.send(token); // Send each token via WebSocket
 //       },
 //     });
 
@@ -86,23 +86,23 @@ const agentClient = new BedrockAgentRuntimeClient({
 //       ws.send("\\end");
 //     }
 //   } catch (error) {
-//     console.error("Claude 호출 오류:", error);
+//     console.error("Claude call error:", error);
 //     if (ws.readyState === WebSocket.OPEN) {
-//       ws.send("AI 응답 생성 중 오류가 발생했습니다.");
+//       ws.send("An error occurred while generating AI response.");
 //     }
 //   }
 // }
 
 
-// WebSocket 서버 생성
+// Create WebSocket server
 const wss = new WebSocket.Server({ port: 5000 }, () => {
-  console.log("WebSocket 서버가 포트 5000에서 실행 중입니다.");
+  console.log("WebSocket server is running on port 5000.");
 });
 
-// Claude Converse API 스트리밍 호출 함수
+// Claude Converse API streaming call function
 async function streamConverseClaude(ws, message) {
   if (ws.readyState !== WebSocket.OPEN) {
-    console.error("WebSocket 연결이 끊어졌습니다. 요청을 중단합니다.");
+    console.error("WebSocket connection is closed. Aborting request.");
     return;
   }
 
@@ -119,7 +119,7 @@ async function streamConverseClaude(ws, message) {
   ];
 
   try {
-    console.log("ConverseStreamCommand 요청 생성 중...");
+    console.log("Creating ConverseStreamCommand request...");
 
     const commandParams = {
       modelId,
@@ -131,17 +131,17 @@ async function streamConverseClaude(ws, message) {
       },
     };
 
-    // ConverseStreamCommand 생성 및 호출
+    // Create and call ConverseStreamCommand
     const command = new ConverseStreamCommand(commandParams);
     const response = await bedrockClient.send(command);
 
-    console.log("응답 스트림 처리 중...");
+    console.log("Processing response stream...");
     let generatedText = "";
 
-    // 스트리밍 응답 처리
+    // Handle streaming response
     for await (const item of response.stream) {
       if (ws.readyState !== WebSocket.OPEN) {
-        console.error("WebSocket 연결이 끊어졌습니다. 스트리밍을 중단합니다.");
+        console.error("WebSocket connection is closed. Stopping streaming.");
         break;
       }
 
@@ -159,9 +159,9 @@ async function streamConverseClaude(ws, message) {
       ws.send("\\end");
     }
   } catch (error) {
-    console.error("Claude 호출 오류:", error);
+    console.error("Claude call error:", error);
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send("AI 응답 생성 중 오류가 발생했습니다.");
+      ws.send("An error occurred while generating AI response.");
     }
   }
 }
@@ -174,7 +174,7 @@ async function streamRAGChat(ws, message) {
   }
 
   try {
-    // Knowledge Base에서 관련 정보 검색
+    // Search for relevant information from Knowledge Base
     const retrieveCommand = new RetrieveCommand({
       knowledgeBaseId: KB_CONFIG.knowledgeBaseId,
       retrievalQuery: {
@@ -190,27 +190,28 @@ async function streamRAGChat(ws, message) {
     const retrievalResponse = await agentClient.send(retrieveCommand);
     const retrievedPassages = retrievalResponse.retrievalResults || [];
     
-    // 검색된 문서들로 컨텍스트 구성
+    // Build context from retrieved documents
     const context = retrievedPassages
       .map(result => result.content?.text || '')
       .filter(text => text.length > 0)
       .join('\n\n');
 
-    // Claude에 컨텍스트와 함께 메시지 전송
+    // Send message to Claude with context
     const contextualMessage = context 
       ? `
       
-         금융과 관련된 대화만 검색된 내용으로 답변 합니다. 
+         Answer only Financial Service Industry-related conversations using the retrieved content. 
 
-         검색된 관련 정보입니다:\n\n${context}\n\n
-         질문은 정보 입니다 : ${message}
+         Here is the retrieved relevant information:\n\n${context}\n\n
+         The question is: ${message}
          
-         답변을 하기 전 아래 조건을 참고하여 답변해주세요.
-            1. 답변이 검색을 해서 답변을 해야하는지를 판단하세요.
-            2. 판단 해야 하는 경우 위 정보를 가지고 답변을 하세요. 
-            3. 검색 결과가 필요 없는 것은 직접 답하세요. 
-            
-        위 조건을 확인해서 답변을 하세요.`
+         Please refer to the following conditions before answering:
+            1. Determine if the answer requires search results.
+            2. If it requires search, answer using the above information. 
+            3. If search results are not needed, answer directly. 
+            4. Detect the language of the incoming question and respond in the same language. 
+               (For example, if the question is in English, answer in English; if it is in Korean, answer in Korean.)
+         Please check the above conditions and provide your answer.`
         
       : message;
     
@@ -233,7 +234,7 @@ async function streamRAGChat(ws, message) {
     const response = await bedrockClient.send(command);
     let fullResponse = '';
 
-    // AI 응답 스트리밍
+    // Stream AI response
     for await (const item of response.stream) {
       if (ws.readyState !== WebSocket.OPEN) break;
       
@@ -247,7 +248,7 @@ async function streamRAGChat(ws, message) {
       }
     }
 
-    // AI 응답이 완료된 후 참고 문서 전송
+    // Send reference documents after AI response is complete
     if (retrievedPassages.length > 0) {
       const sources = retrievedPassages.map(result => ({
         text: result.content?.text || '',
@@ -256,10 +257,10 @@ async function streamRAGChat(ws, message) {
         s3Location: result.location?.s3Location || null,
       })).filter(source => source.text.length > 0);
 
-      // 참고 문서 정보 전송
+      // Send reference document information
       ws.send(JSON.stringify({
         type: 'sources',
-        content: '참고 문서:',
+        content: 'Reference Documents:',
         metadata: {
           sources,
           aiResponse: fullResponse
@@ -281,7 +282,7 @@ async function streamRAGChat(ws, message) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: 'error',
-        content: 'AI 응답 생성 중 오류가 발생했습니다.',
+        content: 'An error occurred while generating AI response.',
         metadata: {
           error: error.message
         }
@@ -304,16 +305,16 @@ async function handleAgentMessage(ws, message, agent) {
 }
 
 wss.on("connection", (ws) => {
-  console.log("클라이언트가 연결되었습니다.");
+  console.log("Client connected.");
 
   ws.on("message", async (data) => {
     try {
-      // 버퍼를 문자열로 변환
+      // Convert buffer to string
       const message = JSON.parse(data.toString());
 
-      console.log("수신된 메시지:", message);
+      console.log("Received message:", message);
   
-      // agent와 text 값 추출
+      // Extract agent and text values
       const { agent, text } = message;
   
       console.log(`Agent: ${agent}, Text: ${text}`);
@@ -321,19 +322,19 @@ wss.on("connection", (ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         await handleAgentMessage(ws, text, agent);
       } else {
-        console.error("WebSocket 연결이 유효하지 않아 메시지를 처리할 수 없습니다.");
+        console.error("WebSocket connection is not valid, cannot process message.");
       }
     } catch (error) {
-      console.error("메시지 처리 중 오류:", error);
-      ws.send("유효하지 않은 메시지 형식입니다.");
+      console.error("Error processing message:", error);
+      ws.send("Invalid message format.");
     }
   });
 
   ws.on("close", () => {
-    console.log("클라이언트 연결이 종료되었습니다.");
+    console.log("Client connection closed.");
   });
 
   ws.on("error", (error) => {
-    console.error("WebSocket 오류:", error);
+    console.error("WebSocket error:", error);
   });
 });
