@@ -1,6 +1,3 @@
-// const Bedrock = require("@langchain/community/llm/bedrock")
-// const StreamingStdOutCallbackHandler = require("langchain/callbacks")
-// import { Bedrock } from "l"
 const WebSocket = require("ws");
 const {
   BedrockRuntimeClient,
@@ -39,59 +36,6 @@ const agentClient = new BedrockAgentRuntimeClient({
   secretAccessKey: AWS_SECRET_ACCESS_KEY,
 });
 
-// const LangChainbedrockClient = new Bedrock({
-//   region: AWS_REGION,
-//   accessKeyId: AWS_ACCESS_KEY_ID,
-//   secretAccessKey: AWS_SECRET_ACCESS_KEY,
-// });
-
-// async function streamConverseClaudeLangchain(ws, message) {
-//   if (ws.readyState !== WebSocket.OPEN) {
-//     console.error("WebSocket connection is closed. Aborting request.");
-//     return;
-//   }
-
-//   // Initialize Bedrock model
-//   const model = new Bedrock({
-//     modelId: BEDROCK_MODEL_ID,
-//     client: LangChainbedrockClient,
-//     streaming: true,
-//     callbacks: [new StreamingStdOutCallbackHandler()],
-//     modelKwargs: {
-//       maxTokens: MAX_TOKENS,
-//       temperature: TEMPERATURE,
-//       topP: TOP_P,
-//     },
-//   });
-
-//   try {
-//     console.log("Creating Bedrock request...");
-
-//     // Set up prompt
-//     const prompt = `Human: ${message}\n\nAssistant:`;
-
-//     // Handle streaming response
-//     const response = await model.call(prompt, {
-//       onToken: (token) => {
-//         if (ws.readyState !== WebSocket.OPEN) {
-//           console.error("WebSocket connection is closed. Stopping streaming.");
-//           return;
-//         }
-//         ws.send(token); // Send each token via WebSocket
-//       },
-//     });
-
-//     if (ws.readyState === WebSocket.OPEN) {
-//       console.log("{Stop reason: Done}");
-//       ws.send("\\end");
-//     }
-//   } catch (error) {
-//     console.error("Claude call error:", error);
-//     if (ws.readyState === WebSocket.OPEN) {
-//       ws.send("An error occurred while generating AI response.");
-//     }
-//   }
-// }
 
 
 // Create WebSocket server
